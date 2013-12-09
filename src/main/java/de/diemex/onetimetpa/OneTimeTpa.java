@@ -96,19 +96,28 @@ public class OneTimeTpa extends JavaPlugin implements Listener
                                 other.sendMessage(ChatColor.YELLOW + sender.getName() + " has requested to teleport to you. Type /tpaccept to accept or tpdeny to deny");
                                 sender.sendMessage(ChatColor.YELLOW + "A teleport request has been send to " + other.getName());
                                 pendingRequests.put(other.getName(), sender.getName());
+                                return true;
                             } else
-                                sender.sendMessage(ChatColor.YELLOW + "Player with name " + args[0] + " doesn't exist!");
-
+                            {    sender.sendMessage(ChatColor.YELLOW + "Player with name " + args[0] + " doesn't exist!");
+                                return true;
+                            }
                         } else
                             sender.sendMessage(ChatColor.YELLOW + "You haven't supplied a player to teleport to");
                     } else
+                    {
                         sender.sendMessage(ChatColor.YELLOW + "You cannot use this command anymore.");
-
+                        return true;
+                    }
                 } else
+                {
                     sender.sendMessage(ChatColor.YELLOW + "/tpa only makes sense for players");
-                return true;
+                    return true;
+                }
             } else
+            {
                 sender.sendMessage(ChatColor.RED + "You lack permission onetimetpa.teleport");
+                return true;
+            }
 
         }
 
@@ -127,15 +136,28 @@ public class OneTimeTpa extends JavaPlugin implements Listener
                             requester.teleport((Player) sender);
                             playersWhoUsedCommand.add(requester.getName());
                             savePlayersToFile();
+                            return true;
                         } else
+                        {
                             //TODO timeout for tpa
                             sender.sendMessage(ChatColor.YELLOW + "Pending request from " + pendingRequests.get(sender.getName()) + " but player can't be found. Maybe /tpdeny if you want to accept a request from someone else?");
+                            return true;
+                        }
                     } else
+                    {
                         sender.sendMessage(ChatColor.YELLOW + "No pending request");
+                        return true;
+                    }
                 } else
+                {
                     sender.sendMessage(ChatColor.YELLOW + "This command only makes sense for players!");
+                    return true;
+                }
             } else
+            {
                 sender.sendMessage(ChatColor.RED + "You lack permission onetimetpa.teleport");
+                return true;
+            }
         }
         //TPDENY
         else if (cmd.getName().equalsIgnoreCase("tpdeny"))
@@ -148,12 +170,18 @@ public class OneTimeTpa extends JavaPlugin implements Listener
                     Player other = getServer().getPlayer(pendingRequests.get(sender.getName()));
                     if (other != null)
                         other.sendMessage(ChatColor.YELLOW + "Your request has been denied by " + sender.getName());
-
                     pendingRequests.remove(sender.getName());
+                    return true;
                 } else
+                {
                     sender.sendMessage(ChatColor.YELLOW + "There are no pending requests");
+                    return true;
+                }
             } else
+            {
                 sender.sendMessage(ChatColor.RED + "You lack permission onetimetpa.teleport");
+                return true;
+            }
         }
         return false;
     }
