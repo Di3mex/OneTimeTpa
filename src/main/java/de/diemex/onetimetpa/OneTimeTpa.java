@@ -8,7 +8,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
@@ -51,7 +51,7 @@ public class OneTimeTpa extends JavaPlugin implements Listener
         //Save the time for the players that are online if not in there already
         if (config.isList(timeNode))
         {
-            String [] splitted;
+            String[] splitted;
             for (String playerNames : config.getStringList(timeNode))
             {
                 splitted = playerNames.split("@");
@@ -64,6 +64,10 @@ public class OneTimeTpa extends JavaPlugin implements Listener
         for (Player player : getServer().getOnlinePlayers())
             if (!firstLogins.containsKey(player.getName()))
                 firstLogins.put(player.getName(), currentTime);
+
+        getServer().getScheduler().scheduleSyncRepeatingTask(this, new reminderThread(), 200L, 5L * 60 * 20);  //5 minutes
+
+        getServer().getPluginManager().registerEvents(this, this);
 
         saveTimes();
 
@@ -180,6 +184,7 @@ public class OneTimeTpa extends JavaPlugin implements Listener
                 && !playersWhoUsedCommand.contains(player.getName());
     }
 
+
     public long getFirstLogin(Player player)
     {
         return firstLogins.get(player.getName());
@@ -187,12 +192,30 @@ public class OneTimeTpa extends JavaPlugin implements Listener
 
 
     @EventHandler
-    public void onLogin(PlayerLoginEvent event)
+    public void onLogin(PlayerJoinEvent event)
     {
         if (!firstLogins.containsKey(event.getPlayer().getName()))
         {
             firstLogins.put(event.getPlayer().getName(), System.currentTimeMillis());
             saveTimes();
+        }
+        if (isEligibleForTpa(event.getPlayer()))
+            event.getPlayer().sendMessage(ChatColor.GREEN + "You have one free tpa which expires in " + (int) Math.abs(((System.currentTimeMillis() - getFirstLogin(event.getPlayer()) - commandTimeout*60*1000)/60/1000))  + " minutes");
+    }
+
+
+    public class reminderThread implements Runnable
+    {
+        @Override
+        public void run()
+        {
+            for (Player player : getServer().getOnlinePlayers())
+            {
+                //Print when command is 5 minutes before expiring
+                if (isEligibleForTpa(player) && (System.currentTimeMillis() - getFirstLogin(player)) < 5 * 60 * 1000)
+                    player.sendMessage(ChatColor.GREEN + "You have one free tpa which expires in " + (int) Math.abs(((System.currentTimeMillis() - getFirstLogin(player) - commandTimeout*60*1000)/60/1000))  + " minutes");
+
+            }
         }
     }
 
