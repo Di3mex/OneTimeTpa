@@ -6,24 +6,26 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Diemex
  */
-public class OneTimeTpa extends JavaPlugin
+public class OneTimeTpa extends JavaPlugin implements Listener
 {
     private Set<String> playersWhoUsedCommand;
     private Map<String, String> pendingRequests;
+    private Map<String, Long> firstLogins;
     private int commandTimeout = 30;
     private String mainNode = "OneTimeTpa";
     private final String timeoutNode = mainNode + ".timeout in minutes after first login";
     private final String playersNode = mainNode + ".players who have used tpa";
+    private final String timeNode = mainNode + ".firstlogins";
     private final String teleportPerm = "onetimetpa.teleport";
 
 
@@ -32,6 +34,7 @@ public class OneTimeTpa extends JavaPlugin
     {
         playersWhoUsedCommand = new HashSet<String>();
         pendingRequests = new HashMap<String, String>();
+        firstLogins = new HashMap<String, Long>();
 
         FileConfiguration config = getConfig();
 
@@ -44,6 +47,25 @@ public class OneTimeTpa extends JavaPlugin
         //Load the previous players from file if set
         if (config.isList(playersNode))
             playersWhoUsedCommand = new HashSet<String>(config.getStringList(playersNode));
+
+        //Save the time for the players that are online if not in there already
+        if (config.isList(timeNode))
+        {
+            String [] splitted;
+            for (String playerNames : config.getStringList(timeNode))
+            {
+                splitted = playerNames.split("@");
+                firstLogins.put(splitted[0], Long.parseLong(splitted[1]));
+            }
+        }
+
+        //Put all current players in there
+        long currentTime = System.currentTimeMillis();
+        for (Player player : getServer().getOnlinePlayers())
+            if (!firstLogins.containsKey(player.getName()))
+                firstLogins.put(player.getName(), currentTime);
+
+        saveTimes();
 
         saveConfig();
     }
@@ -133,6 +155,17 @@ public class OneTimeTpa extends JavaPlugin
     }
 
 
+    public void saveTimes()
+    {
+        List<String> out = new ArrayList<String>();
+        for (Map.Entry<String, Long> times : firstLogins.entrySet())
+        {
+            out.add(times.getKey() + "@" + times.getValue());
+        }
+        getConfig().set(timeNode, out);
+    }
+
+
     public void savePlayersToFile()
     {
         getConfig().set(playersNode, playersWhoUsedCommand);
@@ -143,8 +176,24 @@ public class OneTimeTpa extends JavaPlugin
     public boolean isEligibleForTpa(Player player)
     {
         //First check their online time (in milliseconds)
-        return (player.getFirstPlayed() == 0 || (player.getFirstPlayed() - System.currentTimeMillis() < commandTimeout * 60 * 1000))
+        return (player.getFirstPlayed() == 0 || (getFirstLogin(player) - System.currentTimeMillis() < commandTimeout * 60 * 1000))
                 && !playersWhoUsedCommand.contains(player.getName());
+    }
+
+    public long getFirstLogin(Player player)
+    {
+        return firstLogins.get(player.getName());
+    }
+
+
+    @EventHandler
+    public void onLogin(PlayerLoginEvent event)
+    {
+        if (!firstLogins.containsKey(event.getPlayer().getName()))
+        {
+            firstLogins.put(event.getPlayer().getName(), System.currentTimeMillis());
+            saveTimes();
+        }
     }
 
 
@@ -154,5 +203,6 @@ public class OneTimeTpa extends JavaPlugin
         //You never know with bukkits classloader
         playersWhoUsedCommand = null;
         pendingRequests = null;
+        firstLogins = null;
     }
 }
