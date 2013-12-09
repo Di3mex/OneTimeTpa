@@ -1,0 +1,5 @@
+/server/*
+/.idea/*
+*.iml
+/target
+.directory

@@ -1,0 +1,20 @@
+name: ${project.artifactId}
+main: ${project.mainclass}
+version: ${project.version}
+description: ${project.description}
+dev-url: ${project.url}
+author: Diemex
+commands:
+    tpa:
+        description: Teleport to another player
+        usage: /tpa [player]
+    tpaccept:
+        description: Accept a pending teleport request
+        usage: /tpaaccept
+    tpdeny:
+        description: Deny a pending teleport request
+        usage: /tpdeny
+permissions:
+    onetimetpa.teleport:
+        description: permission to use tpa
+        default: yes
